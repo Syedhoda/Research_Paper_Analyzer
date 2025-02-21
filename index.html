@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,7 +24,7 @@
 </head>
 <body class="bg-gray-100">
   <div class="container mx-auto py-10 px-4">
-    <h1 class="text-4xl font-bold mb-5">"Syed Rafiq ul Hoda" Research Paper Analyzer Tool</h1>
+    <h1 class="text-4xl font-bold mb-5">"Hoda" Research Paper Analyzer Tool</h1>
     <div class="flex flex-wrap -mx-4">
       <div class="w-full lg:w-1/2 px-4">
         <form id="researchPaperForm" class="bg-white p-6 rounded shadow-lg">
@@ -36,6 +37,11 @@
             <input type="file" id="uploadPaper" class="mt-1" accept="application/pdf">
           </div>
           <button type="submit" id="analyzeButton" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-800 hidden">Analyze Paper</button>
+          <button type="button" id="generateLiteratureReviewButton" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-800 mt-4 hidden">Generate Literature Review</button>
+          <button type="button" id="generateCitationButton" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-800 mt-4 hidden">Generate Citation</button>
+          <button type="button" id="latestResearchPapersButton" class="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-800 mt-4 hidden">Latest Research Papers</button>
+          <button type="button" id="newFileButton" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-800 mt-4">Analyze New File</button>
+          <button type="button" id="downloadReportButton" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-800 mt-4 hidden">Download Report</button>
         </form>
         <section id="output" class="bg-white p-6 mt-8 mb-10 rounded shadow-lg text-gray-900"></section>
       </div>
@@ -48,6 +54,10 @@
         <p id="pageInfo" class="text-center mt-2 hidden"></p>
       </div>
     </div>
+
+    <footer class="text-center mt-10 text-sm text-gray-600">
+      Developed by: Syed Rafiq ul Hoda - Email: syedrafiqhoda@gmail.com
+    </footer>
   </div>
 
   <script>
@@ -76,7 +86,7 @@
         canvasContext: context,
         viewport: viewport,
       };
-      
+     
       await page.render(renderContext);
       const pdfPreview = document.getElementById("pdfPreview");
       pdfPreview.innerHTML = '';
@@ -97,14 +107,15 @@
       event.preventDefault();
       const promptTemplate = `
         Read the provided research paper and generate a structured summary including the following:
-        
         Title & Authors: Mention the title and authors of the paper.
         Summary: Provide a brief overview of the research, including its objectives and key findings.
         Methodology: Describe the methodology, including the source of data and any experiments or analysis conducted in the study.
         Findings: State the main findings or results of the research.
         Shortcomings: Identify any limitations or challenges mentioned by the authors.
+        Novelty: Describe the novelty or unique aspects of the research.
+        Weak Points: Highlight any weak points or criticisms of the paper.
         Future Work: Highlight any proposed directions for further research.
-
+        Tools and Programs: List the tools and programs used as mentioned in the paper.
         {Paper text}`;
       const paperText = document.getElementById("paper").value;
 
@@ -112,9 +123,132 @@
         alert('No text was extracted from the PDF. Try with a different file.');
         return;
       }
-      
+     
       const substitutedPrompt = promptTemplate.replace("{Paper text}", paperText);
-      
+     
+      console.log(substitutedPrompt);
+
+      const output = document.getElementById("output");
+      output.innerText = "";
+
+      const ws = new WebSocket(`wss://backend.buildpicoapps.com/ask_ai_streaming_v2`);
+
+      ws.addEventListener("open", () => {
+          ws.send(
+            JSON.stringify({
+              appId: "scientist-tree",
+              prompt: substitutedPrompt
+            })
+          );
+        });
+
+      ws.addEventListener("message", (event) => {
+        output.innerText = `${output.innerText}${event.data}`;
+        document.getElementById("downloadReportButton").classList.remove("hidden");
+        document.getElementById("generateCitationButton").classList.remove("hidden");
+        document.getElementById("latestResearchPapersButton").classList.remove("hidden");
+      });
+
+      ws.addEventListener("close", (event) => {
+        console.log("Connection closed", event.code, event.reason);
+        if (event.code !== 1000) {
+          alert("Oops, we ran into an error. Refresh the page and try again.");
+        }
+      });
+
+      ws.addEventListener("error", (error) => {
+        console.log('WebSocket error', error);
+        alert("Oops, we ran into an error. Refresh the page and try again.");
+      });
+    });
+
+    document.getElementById("uploadPaper").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      try {
+        const pdfBuffer = await file.arrayBuffer();
+        pdf = await pdfjsLib.getDocument({data: pdfBuffer}).promise;
+        let extractedText = '';
+
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+          const page = await pdf.getPage(pageNumber);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map(item => item.str).join(' ');
+
+          extractedText += `${pageText} `;
+        }
+
+        document.getElementById("paper").value = extractedText.trim();
+
+        document.getElementById("paperTextContainer").classList.add("hidden");
+        document.getElementById("uploadPaper").classList.add("hidden");
+        document.getElementById("analyzeButton").classList.remove("hidden");
+        document.getElementById("generateLiteratureReviewButton").classList.remove("hidden");
+        document.getElementById("generateCitationButton").classList.remove("hidden");
+        document.getElementById("latestResearchPapersButton").classList.remove("hidden");
+
+        currentPage = 1;
+        await updatePdfView();
+
+        if (pdf.numPages > 1) {
+          document.getElementById("previousButton").classList.remove("hidden");
+          document.getElementById("nextButton").classList.remove("hidden");
+        } else {
+          document.getElementById("previousButton").classList.add("hidden");
+          document.getElementById("nextButton").classList.add("hidden");
+        }
+
+      } catch (error) {
+        console.error('Error extracting text from PDF', error);
+        alert("Oops, we couldn't extract text from this PDF. Please try another file.");
+      }
+    });
+
+    document.getElementById("newFileButton").addEventListener("click", () => {
+      document.getElementById("paperTextContainer").classList.add("hidden");
+      document.getElementById("uploadPaper").classList.remove("hidden");
+      document.getElementById("analyzeButton").classList.add("hidden");
+      document.getElementById("generateLiteratureReviewButton").classList.add("hidden");
+      document.getElementById("generateCitationButton").classList.add("hidden");
+      document.getElementById("latestResearchPapersButton").classList.add("hidden");
+      document.getElementById("output").innerText = "";
+      document.getElementById("paper").value = '';
+      const pdfPreview = document.getElementById("pdfPreview");
+      pdfPreview.innerHTML = '';
+      const pageInfo = document.getElementById("pageInfo");
+      pageInfo.innerText = '';
+      pageInfo.classList.add("hidden");
+      document.getElementById("previousButton").classList.add("hidden");
+      document.getElementById("nextButton").classList.add("hidden");
+      document.getElementById("downloadReportButton").classList.add("hidden");
+    });
+
+    document.getElementById("downloadReportButton").addEventListener("click", () => {
+      const reportContent = document.getElementById("output").innerText;
+      const blob = new Blob([reportContent], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = 'analyzed_report.txt';
+      link.click();
+    });
+
+    document.getElementById("generateLiteratureReviewButton").addEventListener("click", () => {
+      const literatureReviewPrompt = `
+        Extract the literature review from the provided research paper by summarizing its key sections:
+        Literature Review: Provide an overview of existing research and how it relates to the current study.
+        Gaps in Research: Identify gaps or areas where the current research provides new insights.
+        Relation to Current Study: Explain the relevance of the literature to the current study and its contributions.
+        {Paper text}`;
+      const paperText = document.getElementById("paper").value;
+
+      if (!paperText.trim()) {
+        alert('No text was extracted from the PDF. Try with a different file.');
+        return;
+      }
+     
+      const substitutedPrompt = literatureReviewPrompt.replace("{Paper text}", paperText);
+     
       console.log(substitutedPrompt);
 
       const output = document.getElementById("output");
@@ -137,7 +271,7 @@
 
       ws.addEventListener("close", (event) => {
         console.log("Connection closed", event.code, event.reason);
-        if (event.code != 1000) {
+        if (event.code !== 1000) {
           alert("Oops, we ran into an error. Refresh the page and try again.");
         }
       });
@@ -148,48 +282,105 @@
       });
     });
 
-    document.getElementById("uploadPaper").addEventListener("change", async (event) => {
-      const file = event.target.files[0];
-      if (!file) return;
+    document.getElementById("generateCitationButton").addEventListener("click", () => {
+      const citationPrompt = `
+        Based on the extracted information from the research paper, generate citations in APA, MLA, Chicago, and Harvard style, including DOI if available:
+        APA Citation:
+        MLA Citation:
+        Chicago Citation:
+        Harvard Citation:
+        {Paper text}`;
+       
+      const paperText = document.getElementById("paper").value;
 
-      try {
-        const pdfBuffer = await file.arrayBuffer();        
-        pdf = await pdfjsLib.getDocument({data: pdfBuffer}).promise;
-        let extractedText = '';
-
-        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-          const page = await pdf.getPage(pageNumber);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items.map(item => item.str).join(' ');
-
-          extractedText += `${pageText} `;
-        }
-
-        document.getElementById("paper").value = extractedText.trim();
-
-        // Hide file input and textarea
-        document.getElementById("paperTextContainer").classList.add("hidden");
-        document.getElementById("uploadPaper").classList.add("hidden");
-        document.getElementById("analyzeButton").classList.remove("hidden");
-
-        // Display the PDF preview
-        currentPage = 1;
-        await updatePdfView();
-
-        // Show the previous/next buttons and page info, if paper has more than 1 page
-        if (pdf.numPages > 1) {
-          document.getElementById("previousButton").classList.remove("hidden");
-          document.getElementById("nextButton").classList.remove("hidden");
-        } else {
-          document.getElementById("previousButton").classList.add("hidden");
-          document.getElementById("nextButton").classList.add("hidden");
-        }
-
-      } catch (error) {
-        console.error('Error extracting text from PDF', error);
-        alert("Oops, we couldn't extract text from this PDF. Please try another file.");
+      if (!paperText.trim()) {
+        alert('No text was extracted from the PDF. Try with a different file.');
+        return;
       }
+     
+      const substitutedPrompt = citationPrompt.replace("{Paper text}", paperText);
+     
+      console.log(substitutedPrompt);
+
+      const output = document.getElementById("output");
+      output.innerText = "";
+
+      const ws = new WebSocket(`wss://backend.buildpicoapps.com/ask_ai_streaming_v2`);
+
+      ws.addEventListener("open", () => {
+          ws.send(
+            JSON.stringify({
+              appId: "scientist-tree",
+              prompt: substitutedPrompt
+            })
+          );
+        });
+
+      ws.addEventListener("message", (event) => {
+        output.innerText = `${output.innerText}${event.data}`;
+      });
+
+      ws.addEventListener("close", (event) => {
+        console.log("Connection closed", event.code, event.reason);
+        if (event.code !== 1000) {
+          alert("Oops, we ran into an error. Refresh the page and try again.");
+        }
+      });
+
+      ws.addEventListener("error", (error) => {
+        console.log('WebSocket error', error);
+        alert("Oops, we ran into an error. Refresh the page and try again.");
+      });
     });
+
+    document.getElementById("latestResearchPapersButton").addEventListener("click", () => {
+      const latestPapersPrompt = `
+        Based on the research content of the uploaded paper, provide a list of 10 latest and relevant research papers with the following details:
+        Title, Authors, Year, and Journal. Include DOI if available.
+        {Paper text}`;
+
+      const paperText = document.getElementById("paper").value;
+
+      if (!paperText.trim()) {
+        alert('No text was extracted from the PDF. Try with a different file.');
+        return;
+      }
+     
+      const substitutedPrompt = latestPapersPrompt.replace("{Paper text}", paperText);
+     
+      console.log(substitutedPrompt);
+
+      const output = document.getElementById("output");
+      output.innerText = "";
+
+      const ws = new WebSocket(`wss://backend.buildpicoapps.com/ask_ai_streaming_v2`);
+
+      ws.addEventListener("open", () => {
+          ws.send(
+            JSON.stringify({
+              appId: "scientist-tree",
+              prompt: substitutedPrompt
+            })
+          );
+        });
+
+      ws.addEventListener("message", (event) => {
+        output.innerText = `${output.innerText}${event.data}`;
+      });
+
+      ws.addEventListener("close", (event) => {
+        console.log("Connection closed", event.code, event.reason);
+        if (event.code !== 1000) {
+          alert("Oops, we ran into an error. Refresh the page and try again.");
+        }
+      });
+
+      ws.addEventListener("error", (error) => {
+        console.log('WebSocket error', error);
+        alert("Oops, we ran into an error. Refresh the page and try again.");
+      });
+    });
+
   </script>
 </body>
 </html>
