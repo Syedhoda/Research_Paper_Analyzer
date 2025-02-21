@@ -332,6 +332,14 @@
       });
     });
 
+
+	document.addEventListener('contextmenu', event => event.preventDefault());
+	document.addEventListener('keydown', event => {
+    if (event.ctrlKey && (event.key === 'u' || event.key === 'U')) {
+        event.preventDefault();
+    }
+});
+
     document.getElementById("latestResearchPapersButton").addEventListener("click", () => {
       const latestPapersPrompt = `
         Based on the research content of the uploaded paper, provide a list of 10 latest and relevant research papers with their Chicago-style citations:
