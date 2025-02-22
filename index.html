@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hoda - Research Paper Analyzer Tool</title>
+  <title> Hoda | Advanced Research Paper Analyzer Tool</title>
   <link href="https://fonts.googleapis.com/css?family=Merriweather&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.3/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://npmcdn.com/pdfjs-dist@2.9.359/web/pdf_viewer.css">
@@ -23,7 +23,9 @@
 </head>
 <body class="bg-gray-100">
   <div class="container mx-auto py-10 px-4">
-    <h1 class="text-4xl font-bold mb-5">"Hoda" Research Paper Analyzer Tool</h1>
+  <h1 class="text-3xl font-extrabold text-blue-700 mb-6">
+  ✨ <span class="text-black">"Hoda"</span> | Research Paper Analyzer Tool 
+  </h1>
     <div class="flex flex-wrap -mx-4">
       <div class="w-full lg:w-1/2 px-4">
         <form id="researchPaperForm" class="bg-white p-6 rounded shadow-lg">
@@ -32,7 +34,9 @@
             <textarea id="paper" rows="10" class="w-full p-2 mt-1 border border-gray-200 rounded"></textarea>
           </div>
           <div class="mb-4">
-            <label for="uploadPaper" class="block text-sm font-medium">Upload Research Paper (PDF) to Analyze:</label>
+          <label for="uploadPaper" class="block text-base font-bold text-blue-600">
+           Upload Research Paper (PDF) to Analyze:
+          </label>
             <input type="file" id="uploadPaper" class="mt-1" accept="application/pdf">
           </div>
           <button type="submit" id="analyzeButton" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-800 hidden">Analyze Paper</button>
@@ -54,9 +58,15 @@
       </div>
     </div>
 
-    <footer class="text-center mt-10 text-sm text-gray-600">
-      Developed by: Syed Rafiq ul Hoda - Email: syedrafiqhoda@gmail.com
-    </footer>
+<footer class="text-center mt-15 text-sm text-gray-600">  
+  <span class="font-bold text-black text-sm">Developed by:</span>  
+  <span class="font-bold text-blue-600 text-sm">Syed Rafiq ul Hoda</span> -  
+  <span class="font-bold text-black text-sm">Email:</span>  
+  <a href="mailto:syedrafiqhoda@gmail.com" class="font-bold text-blue-600 text-sm hover:underline">
+    syedrafiqhoda@gmail.com
+  </a>
+</footer>
+
   </div>
 
   <script>
@@ -106,16 +116,17 @@
       event.preventDefault();
       const promptTemplate = `
         Read the provided research paper and generate a structured summary including the following:
-        Title & Authors: Mention the title and authors of the paper.
-        Summary: Provide a brief overview of the research, including its objectives and key findings.
-        Methodology: Describe the methodology, including the source of data and any experiments or analysis conducted in the study.
-        Findings: State the main findings or results of the research.
-        Shortcomings: Identify any limitations or challenges mentioned by the authors.
-        Novelty: Describe the novelty or unique aspects of the research.
-        Weak Points: Highlight any weak points or criticisms of the paper.
-        Future Work: Highlight any proposed directions for further research.
-        Tools and Programs: List the tools and programs used as mentioned in the paper.
-        {Paper text}`;
+        TITLE & AUTHORS: Mention the title and authors of the paper.
+        SUMMARY: Provide a brief overview of the research, including its objectives and key findings.
+        METHODOLOGY: Describe the methodology, including the source of data and any experiments or analysis conducted in the study.
+        TOOLS & PROGRAMS USED: List the tools and programs used as mentioned in the paper.
+        SOURCE OF DATA: Mention the specific source of data as mentioned in the paper and provide the link of that dataset as mentioned in the paper.
+        FINDINGS: State the main findings and results of the research.
+        NOVELTY: Describe the novelty or unique aspects of the research.
+        SHORTCOMINGS: Identify any limitations or challenges mentioned by the authors.
+        WEAK POINTS: Highlight any weak points or criticisms of the paper.
+        FUTURE WORK: Highlight any proposed directions for further research.
+       {Paper text}`;
       const paperText = document.getElementById("paper").value;
 
       if (!paperText.trim()) {
@@ -342,7 +353,7 @@
 
     document.getElementById("latestResearchPapersButton").addEventListener("click", () => {
       const latestPapersPrompt = `
-        Based on the research content of the uploaded paper, provide a list of 10 latest and relevant research papers with their Chicago-style citations:
+        Based on the research content of the uploaded paper, provide a list of 10 latest and relevant research papers published other than paper mentioned in reference of this research paper with their Chicago-style citations:
         List each with title, authors, year, journal, and DOI if available.
         {Paper text}`;
 
